@@ -381,7 +381,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <select id="branchSel" onchange="onBranchChange(this.value)">
         <option value="Awoshie">Awoshie Branch</option>
         <option value="North Kaneshie">North Kaneshie Branch</option>
-        <option value="All">All Branches</option>
+        <option value="All" selected>All Branches</option>
       </select>
     </div>
     <div class="sb-user">
@@ -438,7 +438,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
     </div>
     <div class="tb-r">
       <button class="gs-pill err" id="gsPill" onclick="go('settings',document.querySelector('[data-panel=settings]'))">⬤ Not Connected</button>
-      <span class="tb-branch" id="tbBranch">Awoshie Branch</span>
+      <span class="tb-branch" id="tbBranch">All Branches</span>
       <span style="font-size:11px;color:var(--faint)" id="tbDate"></span><span id="tbRefreshTime" style="font-size:10px;color:var(--faint);margin-left:8px"></span>
       <span id="fbDebug" style="font-size:9px;color:var(--muted);margin-left:8px;font-family:monospace"></span>
       <button class="logout-btn" onclick="doLogout()">Sign Out</button>
@@ -1790,6 +1790,18 @@ function applyRoleUI(){
     brSel.style.opacity='1';
     brSel.style.cursor='pointer';
     Array.from(brSel.options).forEach(o=>{o.style.display='';});
+    // Default to All Branches for users with full access
+    if(brSel.value!=='All'&&brSel.value!=='Awoshie'&&brSel.value!=='North Kaneshie'){
+      brSel.value='All';
+    } else if(!brSel.value||brSel.value===''){
+      brSel.value='All';
+    }
+    // On fresh login always default to All
+    if(currentUser&&currentUser._justLoggedIn){
+      brSel.value='All';
+      currentUser._justLoggedIn=false;
+      onBranchChange('All');
+    }
   }
   // Hide the second pipeline card for single-branch users
   setTimeout(()=>{

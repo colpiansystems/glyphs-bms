@@ -709,7 +709,7 @@ CREATE POLICY "Allow all" ON glyphs_bms FOR ALL USING (true) WITH CHECK (true);<
         </div>
         <div style="margin-top:12px;padding:10px 12px;background:var(--info-bg);border-radius:var(--r);font-size:11px;color:var(--muted)">
           <strong style="color:var(--info)">Your Supabase details:</strong><br>
-          URL: <code>https://wzsmttfyohaawthosfvr.supabase.co</code><br>
+          URL: <code>https://wzsmttfyohaawthosfrv.supabase.co</code><br>
           Key: paste your publishable key from Supabase → Settings → API Keys
         </div>
       </div>
@@ -1331,7 +1331,7 @@ let currentUser=null;
 
 const SAMPLE={
   gsUrl:'',
-  supabaseUrl:'https://wzsmttfyohaawthosfvr.supabase.co',vatRate:15,nhilRate:2.5,getRate:2.5,covidRate:1,tinNum:'',vatNum:'',
+  supabaseUrl:'https://wzsmttfyohaawthosfrv.supabase.co',vatRate:15,nhilRate:2.5,getRate:2.5,covidRate:1,tinNum:'',vatNum:'',
   jobCtr:21,saleCtr:18,expCtr:13,quoteCtr:6,
   customers:[
     {id:'c1',name:'Golden Click',whatsapp:'0266667839',phone:'0266667839',email:'golden@click.com',branch:'Awoshie',notes:'Regular large format client'},
@@ -3319,7 +3319,7 @@ function rSettings(){
   const sbUrlEl=document.getElementById('sbUrl');
   const sbKeyEl=document.getElementById('sbKey');
   // Always pre-fill URL
-  if(sbUrlEl)sbUrlEl.value=db.supabaseUrl||'https://wzsmttfyohaawthosfvr.supabase.co';
+  if(sbUrlEl)sbUrlEl.value=db.supabaseUrl||'https://wzsmttfyohaawthosfrv.supabase.co';
   if(sbKeyEl&&db.supabaseKey&&!sbKeyEl.value)sbKeyEl.value=db.supabaseKey;
   // Title and subtitle
   const titleEl=document.getElementById('settingsTitle');
@@ -3409,9 +3409,11 @@ function saveSupabase(){
   const url=document.getElementById('sbUrl').value.trim();
   const key=document.getElementById('sbKey').value.trim();
   if(!url||!key){toastErr('Please enter both the Supabase URL and anon key.');return;}
-  db.supabaseUrl=url;
+  // Clean up URL - remove trailing slash
+  const cleanUrl=url.replace(/\/+$/,'');
+  db.supabaseUrl=cleanUrl;
   db.supabaseKey=key;
-  _sbUrl=url;
+  _sbUrl=cleanUrl;
   _sbKey=key;
   localStorage.setItem(KEY,JSON.stringify(db));
   testSupabase();
@@ -3448,7 +3450,8 @@ async function testSupabase(){
   }catch(e){
     setPill('err');
     _sbConnected=false;
-    if(el)el.innerHTML='<span style="color:var(--err)">✗ Cannot reach Supabase. Check URL and key.</span>';
+    if(el)el.innerHTML='<span style="color:var(--err)">✗ '+e.message+'. Try the Legacy anon key instead.</span>';
+    console.error('Supabase error:',e);
   }
 }
 

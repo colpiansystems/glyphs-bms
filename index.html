@@ -3424,33 +3424,42 @@ async function testSupabase(){
   if(el)el.innerHTML='<span style="color:var(--muted)">Connecting…</span>';
   setPill('sync');
   try{
-    // Test connection by reading the table
-    const r=await fetch(`${_sbUrl}/rest/v1/glyphs_bms?id=eq.main&select=updated_at`,{
+    // Try to upsert a test record — this confirms both connection AND table exists
+    const r=await fetch(`${_sbUrl}/rest/v1/glyphs_bms`,{
+      method:'POST',
       headers:{
         'apikey':_sbKey,
         'Authorization':'Bearer '+_sbKey,
-        'Content-Type':'application/json'
-      }
+        'Content-Type':'application/json',
+        'Prefer':'resolution=merge-duplicates,return=minimal'
+      },
+      body:JSON.stringify({id:'main',data:{},updated_at:new Date().toISOString(),updated_by:'system'})
     });
-    if(r.ok){
+    const status=r.status;
+    console.log('Supabase test status:',status);
+    // 200, 201, 204 = success
+    if(status===200||status===201||status===204){
       setPill('ok');
       _sbConnected=true;
       if(el)el.innerHTML='<span style="color:var(--ok)">✓ Connected to Supabase!</span>';
-      toastOk('Supabase connected! Real-time sync active across all devices.');
-      // Push current data then start polling
+      toastOk('Supabase connected! Syncing across all devices.');
       await pushToSupabase();
       startSupabasePolling();
-    }else{
-      const err=await r.text();
-      // Table may not exist yet — show SQL to create it
+    } else {
+      const body=await r.text();
+      console.log('Supabase error body:',body);
       setPill('err');
-      if(el)el.innerHTML='<span style="color:var(--err)">✗ Connected but table missing. Run the SQL below.</span>';
-      document.getElementById('sbSqlBlock').style.display='block';
+      if(body.includes('does not exist')||body.includes('relation')){
+        if(el)el.innerHTML='<span style="color:var(--err)">✗ Table missing. Run the SQL shown below.</span>';
+        document.getElementById('sbSqlBlock').style.display='block';
+      } else {
+        if(el)el.innerHTML=`<span style="color:var(--err)">✗ Error ${status}: ${body.substring(0,100)}</span>`;
+      }
     }
   }catch(e){
     setPill('err');
     _sbConnected=false;
-    if(el)el.innerHTML='<span style="color:var(--err)">✗ '+e.message+'. Try the Legacy anon key instead.</span>';
+    if(el)el.innerHTML='<span style="color:var(--err)">✗ Network error: '+e.message+'</span>';
     console.error('Supabase error:',e);
   }
 }

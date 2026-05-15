@@ -1331,7 +1331,8 @@ let currentUser=null;
 
 const SAMPLE={
   gsUrl:'',
-  supabaseUrl:'https://wzsmttfyohaawthosfrv.supabase.co',vatRate:15,nhilRate:2.5,getRate:2.5,covidRate:1,tinNum:'',vatNum:'',
+  supabaseUrl:'https://wzsmttfyohaawthosfrv.supabase.co',
+  supabaseKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6c210dGZ5b2hhYXd0aG9zZnJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4MTU5MjYsImV4cCI6MjA5NDM5MTkyNn0.9fDMZKiWZLM8a3qBjN5QcUn2ciGa0TF9hCZYoHJ3PS4',vatRate:15,nhilRate:2.5,getRate:2.5,covidRate:1,tinNum:'',vatNum:'',
   jobCtr:21,saleCtr:18,expCtr:13,quoteCtr:6,
   customers:[
     {id:'c1',name:'Golden Click',whatsapp:'0266667839',phone:'0266667839',email:'golden@click.com',branch:'Awoshie',notes:'Regular large format client'},
@@ -1736,10 +1737,10 @@ function doLogin(){
   applyRoleUI();
   auditLog('auth',`User signed in: ${found.name}`,`Role: ${found.role} | Branch: ${found.branch||'All'}`);
   startAutoRefresh();
-  // Init Supabase after login if config saved
-  if(db.supabaseUrl&&db.supabaseKey){
-    _sbUrl=db.supabaseUrl;
-    _sbKey=db.supabaseKey;
+  // Auto-connect Supabase — credentials baked in
+  _sbUrl=db.supabaseUrl||'https://wzsmttfyohaawthosfrv.supabase.co';
+  _sbKey=db.supabaseKey||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6c210dGZ5b2hhYXd0aG9zZnJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4MTU5MjYsImV4cCI6MjA5NDM5MTkyNn0.9fDMZKiWZLM8a3qBjN5QcUn2ciGa0TF9hCZYoHJ3PS4';
+  if(_sbUrl&&_sbKey){
     _sbConnected=true;
     setTimeout(()=>{pullFromSupabase();startSupabasePolling();},300);
   }
@@ -3319,8 +3320,8 @@ function rSettings(){
   const sbUrlEl=document.getElementById('sbUrl');
   const sbKeyEl=document.getElementById('sbKey');
   // Always pre-fill URL
-  if(sbUrlEl)sbUrlEl.value=db.supabaseUrl||'https://wzsmttfyohaawthosfrv.supabase.co';
-  if(sbKeyEl&&db.supabaseKey&&!sbKeyEl.value)sbKeyEl.value=db.supabaseKey;
+  if(sbUrlEl)sbUrlEl.value=db.supabaseUrl||'https://wzsmttfyohaawthosfrv.supabase.co';//'https://wzsmttfyohaawthosfrv.supabase.co';
+  if(sbKeyEl&&!sbKeyEl.value)sbKeyEl.value=db.supabaseKey||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6c210dGZ5b2hhYXd0aG9zZnJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4MTU5MjYsImV4cCI6MjA5NDM5MTkyNn0.9fDMZKiWZLM8a3qBjN5QcUn2ciGa0TF9hCZYoHJ3PS4';
   // Title and subtitle
   const titleEl=document.getElementById('settingsTitle');
   const subEl=document.getElementById('settingsSub');

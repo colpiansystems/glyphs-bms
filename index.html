@@ -671,41 +671,51 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
   <!-- ════ SETTINGS ════ -->
   <div id="panel-settings" class="panel">
     <div class="ph"><div class="ph-l"><h1 id="settingsTitle">Settings</h1><p id="settingsSub">Loading…</p></div></div>
+    <!-- SUPABASE CARD — Primary real-time database -->
     <div class="card mb sysadmin-only" style="border:2px solid var(--gold)">
-      <div class="ch" style="background:linear-gradient(135deg,var(--brand) 0%,#2A4A72 100%)">
-        <span class="ct" style="color:var(--gold2)">🔥 Firebase Real-Time Database (Primary Sync)</span>
-        <span class="b" id="fbStatusBadge" style="background:var(--gold);color:var(--brand);font-size:10px">Not configured</span>
+      <div class="ch" style="background:linear-gradient(135deg,var(--brand) 0%,#1B5E3B 100%)">
+        <span class="ct" style="color:var(--gold2)">⚡ Supabase — Real-Time Database (Primary)</span>
+        <span class="b" id="sbStatusBadge" style="background:var(--gold);color:var(--brand);font-size:10px">Not configured</span>
       </div>
       <div style="padding:16px 18px">
-        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Firebase syncs data instantly across <strong>all devices</strong> — Mac, iPad, iPhone, any browser. No CORS issues.</p>
-        <div class="fg" style="margin-bottom:10px">
-          <label class="fl">Firebase Config JSON</label>
-          <textarea class="fc" id="fbConfig" rows="7" placeholder='Paste your Firebase config here' style="font-family:monospace;font-size:11px;min-height:160px">{
-  "apiKey": "AIzaSyCt3rq0Wsvkam0zCgj413KKKie1tFy74Wk",
-  "authDomain": "glyphs-bms.firebaseapp.com",
-  "projectId": "glyphs-bms",
-  "storageBucket": "glyphs-bms.firebasestorage.app",
-  "messagingSenderId": "255923268411",
-  "appId": "1:255923268411:web:84b5191188584de4dc651e",
-  "databaseURL": "https://glyphs-bms-default-rtdb.firebaseio.com"
-}</textarea></textarea>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Supabase syncs data instantly across <strong>all devices</strong>. Secure PostgreSQL. No CORS. Works on every browser including Safari on iPad.</p>
+        <div class="fgrid g2" style="margin-bottom:10px">
+          <div class="fg">
+            <label class="fl">Supabase Project URL *</label>
+            <input class="fc" id="sbUrl" placeholder="https://xxxxxxxxxxxx.supabase.co">
+          </div>
+          <div class="fg">
+            <label class="fl">Supabase Anon Key *</label>
+            <input class="fc" id="sbKey" placeholder="sb_publishable_...">
+          </div>
         </div>
-        <div id="fbResult" style="font-size:12px;margin-bottom:10px"></div>
+        <div id="sbResult" style="font-size:12px;margin-bottom:10px"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-p" onclick="saveFirebase()">🔥 Connect Firebase</button>
-          <button class="btn btn-o btn-s" onclick="pushToFirebase().then(()=>toastOk('Data pushed to Firebase ✓'))">↑ Push All Data</button>
+          <button class="btn btn-p" onclick="saveSupabase()">⚡ Connect Supabase</button>
+          <button class="btn btn-o btn-s" onclick="pushToSupabase().then(()=>toastOk('Data pushed ✓'))">↑ Push All Data</button>
+          <button class="btn btn-o btn-s" onclick="pullFromSupabase().then(()=>toastOk('Data pulled ✓'))">↓ Pull Latest</button>
+        </div>
+        <div id="sbSqlBlock" style="display:none;margin-top:12px;padding:12px;background:#1A1A18;border-radius:8px">
+          <div style="font-size:11px;font-weight:600;color:#C9993A;margin-bottom:8px">Run this SQL in Supabase → SQL Editor:</div>
+          <pre id="sbSql" style="font-size:10px;color:#E2DED5;margin:0;white-space:pre-wrap">CREATE TABLE IF NOT EXISTS glyphs_bms (
+  id text PRIMARY KEY DEFAULT 'main',
+  data jsonb NOT NULL DEFAULT '{}',
+  updated_at timestamptz DEFAULT now(),
+  updated_by text DEFAULT 'system'
+);
+ALTER TABLE glyphs_bms ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all" ON glyphs_bms FOR ALL USING (true) WITH CHECK (true);</pre>
+          <button class="btn btn-o btn-s" style="margin-top:8px" onclick="navigator.clipboard.writeText(document.getElementById('sbSql').textContent);toastOk('SQL copied!')">Copy SQL</button>
         </div>
         <div style="margin-top:12px;padding:10px 12px;background:var(--info-bg);border-radius:var(--r);font-size:11px;color:var(--muted)">
-          <strong style="color:var(--info)">Setup (takes 10 minutes):</strong><br>
-          1. Go to <strong>console.firebase.google.com</strong> → Create project<br>
-          2. Add a Web App → copy the <code>firebaseConfig</code> object<br>
-          3. Go to <strong>Realtime Database</strong> → Create database → <strong>Test mode</strong><br>
-          4. Paste config above → Connect Firebase
+          <strong style="color:var(--info)">Your Supabase details:</strong><br>
+          URL: <code>https://wzsmttfyohaawthosfvr.supabase.co</code><br>
+          Key: paste your publishable key from Supabase → Settings → API Keys
         </div>
       </div>
     </div>
 
-    <div class="card mb sysadmin-only">
+        <div class="card mb sysadmin-only">
       <div class="ch"><span class="ct">Google Sheets Sync</span><span class="b b-i">Cloud Database</span></div>
       <div class="cb">
         <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">

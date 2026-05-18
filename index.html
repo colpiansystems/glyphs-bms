@@ -64,11 +64,11 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;font-size:14px;background
 .login-btn{width:100%;padding:12px;background:var(--brand);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s;margin-top:4px;}
 .login-btn:hover{background:var(--brand2);}
 .login-err{background:var(--err-bg);color:var(--err);border:1px solid var(--err-border);border-radius:8px;padding:10px 13px;font-size:13px;margin-bottom:12px;display:none;}
-.login-roles{margin-top:20px;border-top:1px solid var(--border);padding-top:16px;}
-.login-roles p{font-size:11px;color:var(--muted);margin-bottom:8px;text-align:center;}
-.role-pills{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
-.role-pill{font-size:11px;padding:4px 10px;border-radius:20px;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--muted);transition:all .15s;}
-.role-pill:hover{background:var(--brand);color:#fff;border-color:var(--brand);}
+
+
+
+
+
 
 /* ── SIDEBAR ── */
 #sb{position:fixed;top:0;left:0;bottom:0;width:var(--sidebar);background:var(--brand3);display:flex;flex-direction:column;z-index:200;overflow-y:auto;transition:transform .25s;}
@@ -342,19 +342,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
     <label class="login-label" for="liPass">PIN</label>
     <input class="login-input" id="liPass" type="password" placeholder="Enter your PIN (4–6 digits)" autocomplete="current-password" maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="login-btn" onclick="doLogin()">Sign In →</button>
-    <div class="login-roles">
-      <p>Demo — click a role to auto-fill</p>
-      <div class="role-pills">
-        <span class="role-pill" onclick="fillLogin('Stephen','1234')">Stephen — CEO (1234)</span>
-        <span class="role-pill" onclick="fillLogin('Finance Manager','2222')">Finance Manager (2222)</span>
-        <span class="role-pill" onclick="fillLogin('Finance Officer','3456')">Finance Officer (3456)</span>
-        <span class="role-pill" onclick="fillLogin('Lucy','3333')">Lucy — CSO NK (3333)</span>
-        <span class="role-pill" onclick="fillLogin('Alice','4444')">Alice — CSO Aw (4444)</span>
-        <span class="role-pill" onclick="fillLogin('Derrick','5555')">Derrick — Prod Aw (5555)</span>
-        <span class="role-pill" onclick="fillLogin('Bernard','6666')">Bernard — Prod NK (6666)</span>
-        <span class="role-pill" onclick="fillLogin('System Admin','0000')">System Admin (0000)</span>
-      </div>
-    </div>
+
     <div style="margin-top:12px;text-align:center">
       <button onclick="localStorage.removeItem('glyphs_v5');localStorage.removeItem('glyphs_v4');localStorage.removeItem('glyphs_v3');localStorage.removeItem(KEY);db=JSON.parse(JSON.stringify(SAMPLE));saveDB();location.reload();" style="background:#e8f0fe;border:1px solid #c5d3f0;color:#1A2E4A;font-size:11px;font-weight:600;cursor:pointer;padding:6px 16px;border-radius:6px;margin-top:4px">🔄 Reset &amp; Reload</button>
     </div>
@@ -2734,7 +2722,19 @@ function showInvoiceModal(jobId,quoteObj){
   const _vForBalance=isJob?calcVAT(_orderSubtotal):{total:data.total||0};
   const _trueTotal=isJob?_vForBalance.total:(data.total||0);
   const balance=R2(_trueTotal-amtPaid);
-  const _isPaidFull=isJob&&(_paySource.paid||balance<=0.01);
+  // CRITICAL: Check BOTH the paid flag AND that the actual balance is zero
+  // j.paid alone is unreliable — it may have been set incorrectly
+  // Only show PAID IN FULL if both conditions are true
+  // Self-heal: if j.paid=true but balance>0.01, the flag is stale — correct it
+  if(isJob&&_paySource.paid===true&&balance>0.01){
+    _paySource.paid=false;
+    // Also fix all jobs in this order
+    if(_orderJobs)_orderJobs.forEach(j=>{if(j.amountPaid<(j.subtotal||j.total||0))j.paid=false;});
+    // Save the correction silently
+    try{localStorage.setItem(KEY,JSON.stringify(db));}catch(e){}
+    if(_fbRef)pushToSupabase();
+  }
+  const _isPaidFull=isJob&&(_paySource.paid===true)&&(balance<=0.01);
   const statusLabel=isJob?(
     _isPaidFull?'<span class="inv-status-badge inv-paid">PAID IN FULL</span>':
     amtPaid>0?`<span class="inv-status-badge" style="background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn)">PART PAYMENT — GHS ${N(balance)} OUTSTANDING</span>`:
@@ -4026,13 +4026,13 @@ function applyPartPayment(){
     inv.quote.amountPaid=newPaid;
     if(!inv.quote.payments)inv.quote.payments=[];
     inv.quote.payments.push({amount:amt,date:TODAY(),by:currentUser?.name||'',method});
-    if(newBalance<=0.01){inv.quote.paid=true;inv.quote.amountPaid=inv.total;}
+    if(newBalance<=0.01&&newPaid>=inv.total-0.01){inv.quote.paid=true;inv.quote.amountPaid=inv.total;}
   } else {
     // Payment on job order(s)
     inv.firstJob.amountPaid=newPaid;
     if(!inv.firstJob.payments)inv.firstJob.payments=[];
     inv.firstJob.payments.push({amount:amt,date:TODAY(),by:currentUser?.name||'',method});
-    if(newBalance<=0.01){
+    if(newBalance<=0.01&&newPaid>=inv.total-0.01){
       inv.jobs.forEach(j=>{
         j.paid=true;
         j.amountPaid=j.subtotal||j.total||0;

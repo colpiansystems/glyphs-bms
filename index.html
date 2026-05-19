@@ -737,7 +737,7 @@ CREATE POLICY "Allow all" ON glyphs_bms FOR ALL USING (true) WITH CHECK (true);<
       </div>
     </div>
     <!-- Staff & Users -->
-    <div class="tc2 mb">
+    <div class="tc2 mb ceo-only">
       <div class="card">
         <div class="ch"><span class="ct">Staff / Users</span><button class="btn btn-p btn-s" onclick="openM('mStaff')">+ Add</button></div>
         <div class="tw"><table><thead><tr><th>Name</th><th>Role</th><th>PIN</th><th>Branch</th><th></th></tr></thead><tbody id="staffBody"></tbody></table></div>
@@ -1077,10 +1077,14 @@ CREATE POLICY "Allow all" ON glyphs_bms FOR ALL USING (true) WITH CHECK (true);<
   <div class="md" style="max-width:380px">
     <div class="mh"><span class="mt">Reset PIN</span><button class="mx" onclick="closeM('mResetPin')">✕</button></div>
     <div class="mb2">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Resetting PIN for: <strong id="_resetPinName"></strong></div>
-      <div class="fg"><label class="fl">New PIN (4–6 digits) *</label>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Setting new PIN for: <strong id="_resetPinName"></strong></div>
+      <div class="fg" style="margin-bottom:12px"><label class="fl">New PIN (4–6 digits) *</label>
         <input class="fc" type="password" id="_resetPinInput" inputmode="numeric" maxlength="6" placeholder="Enter new PIN" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
       </div>
+      <div class="fg" style="margin-bottom:12px"><label class="fl">Confirm New PIN *</label>
+        <input class="fc" type="password" id="_resetPinConfirm" inputmode="numeric" maxlength="6" placeholder="Re-enter new PIN" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+      </div>
+      <div id="_resetPinErr" style="color:var(--err);font-size:12px;min-height:16px"></div>
       <input type="hidden" id="_resetPinStaffId">
     </div>
     <div class="mf"><button class="btn btn-o" onclick="closeM('mResetPin')">Cancel</button><button class="btn btn-p" onclick="applyResetPin()">Save New PIN</button></div>
@@ -3341,6 +3345,8 @@ function rSettings(){
   if(subEl)subEl.textContent=isSysAdmin?'Google Sheets, VAT configuration, data management — System Admin only.':'Manage staff members and their PINs — CEO access.';
   // Show/hide sysadmin-only cards
   document.querySelectorAll('.sysadmin-only').forEach(el=>{el.style.display=isSysAdmin?'':'none';});
+  // CEO sees staff management, not sysadmin cards
+  document.querySelectorAll('.ceo-only').forEach(el=>{el.style.display=(isCEO||isSysAdmin)?'':'none';});
   document.getElementById('gsUrl').value=db.gsUrl||'';
   document.getElementById('vatRate').value=db.vatRate||15;
   document.getElementById('nhilRate').value=db.nhilRate||2.5;
@@ -4125,15 +4131,28 @@ function applyEditStaff(){
 function applyResetPin(){
   const id=document.getElementById('_resetPinStaffId').value;
   const newPin=document.getElementById('_resetPinInput').value.trim();
-  if(!newPin||newPin.length<4){toastErr('PIN must be 4–6 digits.');return;}
-  if(!/^\d{4,6}$/.test(newPin)){toastErr('PIN must contain digits only.');return;}
+  const confirm=document.getElementById('_resetPinConfirm')?.value.trim()||newPin;
+  const errEl=document.getElementById('_resetPinErr');
+  if(errEl)errEl.textContent='';
+  if(!newPin||newPin.length<4){
+    if(errEl)errEl.textContent='PIN must be 4–6 digits.';
+    else toastErr('PIN must be 4–6 digits.');return;
+  }
+  if(!/^\d{4,6}$/.test(newPin)){
+    if(errEl)errEl.textContent='PIN must contain digits only.';
+    else toastErr('PIN must contain digits only.');return;
+  }
+  if(newPin!==confirm){
+    if(errEl)errEl.textContent='PINs do not match. Please re-enter.';
+    else toastErr('PINs do not match.');return;
+  }
   const s=db.staff.find(x=>x.id===id);
   if(!s){toastErr('Staff not found.');return;}
   s.pin=newPin;
-  auditLog('settings',`PIN reset for: ${s.name}`,`Role: ${s.role} | Branch: ${s.branch} | Reset by: ${currentUser?.name}`);
+  auditLog('settings',`PIN changed: ${s.name}`,`Role: ${s.role} | Branch: ${s.branch} | Changed by: ${currentUser?.name}`);
   saveDB();closeM('mResetPin');rSettings();
   USERS[s.name.toLowerCase()]={...USERS[s.name.toLowerCase()],pin:newPin};
-  toastOk(`PIN updated for ${s.name}.`);
+  toastOk(`PIN updated for ${s.name} ✓`);
 }
 function applyAddSvc(){
   const v=document.getElementById('_newSvcInput').value.trim();

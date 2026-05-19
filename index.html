@@ -310,6 +310,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
 #partPayPanel{display:none;background:var(--warn-bg);border:1px solid var(--warn-border);border-radius:var(--r);padding:14px 16px;margin-top:12px;}
 #partPayPanel.open{display:block;}
 
+.ceo-only{display:none}
 </style>
 </head>
 <body>
@@ -3262,7 +3263,15 @@ function rDash(){
   if(actCard&&db.activityLog&&db.activityLog.length){
     actCard.style.display='';
     document.getElementById('actCount').textContent=db.activityLog.length+' events';
-    document.getElementById('actBody').innerHTML=db.activityLog.slice(0,8).map(a=>{
+    // Filter activity log by branch for non-CEO/Finance users
+  const _canSeeAll=canAccess(['ceo','owner','manager','finance_officer','sysadmin']);
+  const _myBranch=currentUser?.branch||'All';
+  const _filteredActivity=db.activityLog.filter(a=>{
+    if(_canSeeAll||_myBranch==='All')return true;
+    // Only show activities from own branch or own actions
+    return (!a.branch||a.branch===_myBranch||a.by===currentUser?.name);
+  });
+  document.getElementById('actBody').innerHTML=_filteredActivity.slice(0,8).map(a=>{
       const d=new Date(a.ts);const timeStr=d.toLocaleDateString('en-GH',{month:'short',day:'numeric'})+' '+d.toLocaleTimeString('en-GH',{hour:'2-digit',minute:'2-digit'});
       const icon={job:'📋',status:'🔄',petty:'💰'}[a.type]||'📝';
       return `<tr><td style="color:var(--muted);white-space:nowrap;font-size:11px">${timeStr}</td><td>${icon}</td><td>${a.msg}</td><td style="color:var(--muted)">${a.user}</td></tr>`;
@@ -3344,9 +3353,23 @@ function rSettings(){
   if(titleEl)titleEl.textContent=isSysAdmin?'System Settings':'Staff Management';
   if(subEl)subEl.textContent=isSysAdmin?'Google Sheets, VAT configuration, data management — System Admin only.':'Manage staff members and their PINs — CEO access.';
   // Show/hide sysadmin-only cards
+  // Show/hide role-specific sections
   document.querySelectorAll('.sysadmin-only').forEach(el=>{el.style.display=isSysAdmin?'':'none';});
-  // CEO sees staff management, not sysadmin cards
   document.querySelectorAll('.ceo-only').forEach(el=>{el.style.display=(isCEO||isSysAdmin)?'':'none';});
+  // Always populate staffBody for CEO and SysAdmin
+  if(isCEO||isSysAdmin){
+    const sbEl=document.getElementById('staffBody');
+    if(sbEl)sbEl.innerHTML=db.staff.map(s=>`<tr>
+  <td><strong>${s.name}</strong></td>
+  <td><span class="b b-i">${s.role}</span></td>
+  <td style="color:var(--muted);font-family:monospace;letter-spacing:2px">${s.pin?'●'.repeat(s.pin.length):'—'}</td>
+  <td><span class="b b-n">${s.branch}</span></td>
+  <td style="white-space:nowrap">
+    <button class="btn btn-o btn-s" onclick="openEditStaff('${s.id}')">Edit</button>
+    <button class="btn btn-info btn-s" onclick="resetPin('${s.id}')">Reset PIN</button>
+    <button class="btn btn-err btn-s" onclick="delStaff('${s.id}')">Del</button>
+  </td></tr>`).join('');
+  }
   document.getElementById('gsUrl').value=db.gsUrl||'';
   document.getElementById('vatRate').value=db.vatRate||15;
   document.getElementById('nhilRate').value=db.nhilRate||2.5;
